@@ -35,6 +35,7 @@
          init_per_group/2,end_per_group/2,
          smoke_default/1,
          smoke_save_vars/1,
+         slim_option/1,
          fixed_bugs/1,
          empty_module/1,
          call_in_call_args/1,
@@ -49,7 +50,8 @@ all() ->
 
 groups() ->
     [{p,test_lib:parallel(),
-      [fixed_bugs,
+      [slim_option,
+       fixed_bugs,
        empty_module,
        call_in_call_args,
        missing_vars]}].
@@ -686,6 +688,17 @@ decode_tag(?tag_z) -> z.
 %%%
 %%% Other test cases.
 %%%
+
+%% Ensure that the beam_debug_info chunk is included even if
+%% the `slim` option is given.
+slim_option(_Config) ->
+    {ok,{?MODULE,[{abstract_code,{raw_abstract_v1,Abstr}}]}} =
+        beam_lib:chunks(code:which(?MODULE), [abstract_code]),
+    {ok,?MODULE,Beam} = compile:forms(Abstr, [slim,beam_debug_info]),
+    Chunks = proplists:get_value(chunks, beam_lib:info(Beam)),
+    io:format("~p\n", [Chunks]),
+    true = lists:keymember("DbgB", 1, Chunks),
+    ok.
 
 fixed_bugs(_Config) ->
     ok = unassigned_yreg(ok),

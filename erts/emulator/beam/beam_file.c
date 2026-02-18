@@ -1634,6 +1634,12 @@ beamfile_read(const byte *data, size_t size, BeamFile *beam) {
                       chunks[RECORD_CHUNK].size);
         }
 
+        if (chunks[DEBUG_CHUNK].size > 0) {
+            MD5Update(&md5,
+                      (byte*)chunks[DEBUG_CHUNK].data,
+                      chunks[DEBUG_CHUNK].size);
+        }
+
         MD5Final(beam->checksum, &md5);
     }
 

@@ -37,6 +37,7 @@
          smoke_save_vars/1,
          slim_option/1,
          fixed_bugs/1,
+         short_bdi_chunk/1,
          empty_module/1,
          call_in_call_args/1,
          missing_vars/1]).
@@ -53,6 +54,7 @@ groups() ->
       [slim_option,
        fixed_bugs,
        empty_module,
+       short_bdi_chunk,
        call_in_call_args,
        missing_vars]}].
 
@@ -747,7 +749,6 @@ no_function(X) ->
             id({X, Err})
     end.
 
-
 empty_module(_Config) ->
     Mod = list_to_atom(?MODULE_STRING ++ "_" ++
                            atom_to_list(?FUNCTION_NAME)),
@@ -755,6 +756,31 @@ empty_module(_Config) ->
              {attribute,{1,2},module,Mod},
              {eof,{3,1}}],
     {ok,Mod,_Code} = compile:forms(Empty, [beam_debug_info,report]),
+
+    ok.
+
+short_bdi_chunk(Config) ->
+    M = ?FUNCTION_NAME,
+    PrivDir = proplists:get_value(priv_dir, Config),
+    SrcName = filename:join(PrivDir, atom_to_list(M) ++ ".erl"),
+
+    %% When the first function in a module was unused, the "DbgB"
+    %% chunk would become too short.
+    S = ~"""
+         -module(short_bdi_chunk).
+          -export([go/0]).
+          unused() -> ok.
+          go() -> ok.
+         """,
+
+    ok = file:write_file(SrcName, S),
+    {ok,M,Beam} = compile:file(SrcName, [report,beam_debug_info,binary]),
+
+    {Info,_} = get_debug_info(M, Beam),
+
+    %% The first two entries are dummies corresponding to the removed
+    %% unused/0 function.
+    [{1,{none,[]}},{2,{none,[]}},{3,{entry,[]}},{4,{none,[]}}] = Info,
 
     ok.
 

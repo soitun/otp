@@ -418,7 +418,12 @@ build_beam_debug_info_1(Dict0) ->
     DebugTab0 = beam_dict:debug_table(Dict0),
     DebugTab1 = [{Index,Info} ||
                     Index := Info <- maps:iterator(DebugTab0, ordered)],
-    DebugTab = build_bdi_fill_holes(DebugTab1),
+    DebugTab2 = case DebugTab1 of
+                    [{1,_}|_] -> DebugTab1;
+                    [_|_] -> [{1,{none,[]}}|DebugTab1];
+                    [] -> []
+                end,
+    DebugTab = build_bdi_fill_holes(DebugTab2),
     NumVars = lists:sum([length(Vs) || {_,Vs} <- DebugTab]),
     {Contents0,Dict} = build_bdi(DebugTab, Dict0),
     NumItems = length(Contents0),

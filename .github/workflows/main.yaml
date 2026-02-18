@@ -569,7 +569,7 @@ jobs:
                 tar -xzf ./otp_src.tar.gz
                 cd otp
                 export ERL_TOP=`pwd`
-                export MAKEFLAGS=-j$(($(nproc) + 2))
+                export MAKEFLAGS=-j$(($(sysctl -n hw.ncpu) + 2))
                 export ERLC_USE_SERVER=true
                 export ERTS_SKIP_DEPEND=true
                 ./configure
@@ -595,7 +595,8 @@ jobs:
                 tar -xzf ./otp_src.tar.gz
                 cd otp
                 export ERL_TOP=`pwd`
-                export MAKEFLAGS=-j$($(nproc))
+                export MAKEFLAGS=-j$(($(sysctl -n hw.ncpuonline) + 2))
+                ulimit -n 65536
                 export ERLC_USE_SERVER=true
                 export ERTS_SKIP_DEPEND=true
                 ./configure
@@ -621,7 +622,7 @@ jobs:
                 tar -xzf ./otp_src.tar.gz
                 cd otp
                 export ERL_TOP=`pwd`
-                export MAKEFLAGS=-j$($(nproc))
+                export MAKEFLAGS=-j$(($(psrinfo | wc -l) + 2))
                 export ERLC_USE_SERVER=true
                 export ERTS_SKIP_DEPEND=true
                 ./configure

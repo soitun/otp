@@ -34,7 +34,6 @@
 -export([
          daemon_start/1,
          daemon_loop/1,
-         daemon_loop/3,    %% Handle upgrade from old releases. Please, remove this function in next release.
          client_start/4,
          common_loop/6,
          info/1,
@@ -204,18 +203,6 @@ prepare_daemon_udp(#config{udp_port = Port, udp_options = UdpOptions} = Config) 
             end
     end.
 
-daemon_loop(DaemonConfig, N, Servers) when is_list(Servers) ->
-    %% Handle upgrade from old releases. Please, remove this function in next release.
-    ServerTab = ets:new(tftp_daemon_servers, [{keypos, 2}]),
-    FileTab = ets:new(tftp_daemon_files, [{keypos, 2}]),
-    State = #daemon_state{config = DaemonConfig,
-                          n_servers = N,
-                          server_tab = ServerTab,
-                          file_tab = FileTab},
-    Req = #tftp_msg_req{filename = dummy},
-    [ets:insert(ServerTab, #server_info{pid = Pid, req = Req, peer = dummy}) || Pid <- Servers],
-    daemon_loop(State).
-
 daemon_loop(#daemon_state{config = DaemonConfig,
                           n_servers = N,
                           server_tab = ServerTab,
@@ -304,21 +291,7 @@ daemon_loop(#daemon_state{config = DaemonConfig,
         Info ->
             warning_msg(DaemonConfig, "Daemon received: ~p", [Info]),
             ?MODULE:daemon_loop(State)
-    end;
-daemon_loop(#daemon_state{config = Config} = State) ->
-    %% Handle upgrade from old releases. Please, remove this clause in next release.
-    Config2 = upgrade_config(Config),
-    daemon_loop(State#daemon_state{config = Config2}).
-
-upgrade_config({config, ParentPid, UdpSocket, UdpOptions, UdpHost, UdpPort, PortPolicy,
-                UseTsize, MaxTsize, MaxConn, Rejected, PoliteAck, DebugLevel,
-                Timeout, UserOptions, Callbacks}) ->
-    Callbacks2  = tftp_lib:add_default_callbacks(Callbacks),
-    Logger = tftp_logger,
-    MaxRetries = 5,
-    {config, ParentPid, UdpSocket, UdpOptions, UdpHost, UdpPort, PortPolicy,
-     UseTsize, MaxTsize, MaxConn, Rejected, PoliteAck, DebugLevel,
-     Timeout, UserOptions, Callbacks2, Logger, MaxRetries}.
+    end.
 
 %%%-------------------------------------------------------------------
 %%% Server
@@ -393,10 +366,7 @@ server_init(Config, Req) when is_record(Config, config),
             end;
         #error{} = Error ->
             terminate(Config2, Req, Error)
-    end;
-server_init(Config, Req) when is_record(Req, tftp_msg_req) ->
-    Config2 = upgrade_config(Config),
-    server_init(Config2, Req).
+    end.
 
 %%%-------------------------------------------------------------------
 %%% Client
@@ -611,11 +581,7 @@ common_loop(Config, Callback, Req, #transfer_res{status = Status, decoded_msg = 
             #tftp_msg_error{code = Code, text = Text} = Prepared,
             send_msg(Config, Req, Prepared),
             terminate(Config, Req, ?ERROR(transfer, Code, Text, Req#tftp_msg_req.filename))
-    end;
-common_loop(Config, Callback, Req, TransferRes, LocalAccess, ExpectedBlockNo) ->
-    %% Handle upgrade from old releases. Please, remove this clause in next release.
-    Config2 = upgrade_config(Config),
-    common_loop(Config2, Callback, Req, TransferRes, LocalAccess, ExpectedBlockNo).
+    end.
 
 -spec common_read(#config{}, #callback{}, _, 'read', _, _, #prepared{}) -> no_return().
 
@@ -743,7 +709,6 @@ pre_terminate(Config, Req, Result) ->
             try proc_lib:init_fail(Result, {throw, ok})
             catch throw : ok -> ok
             end,
-            unlink(Config#config.parent_pid),
             Config#config{parent_pid = undefined, polite_ack = true};
         true ->
             Config#config{polite_ack = true}
@@ -772,7 +737,6 @@ terminate(Config, Req, Result) ->
             try proc_lib:init_fail(Result2, {throw, ok})
             catch throw : ok -> ok
             end,
-            unlink(Config#config.parent_pid),
             exit(normal);
         true ->
             %% Server
@@ -1435,18 +1399,12 @@ do_format(Config, Side, Local, Format, Args) ->
 %%-------------------------------------------------------------------
 
 system_continue(_Parent, _Debug, #sys_misc{module = Mod, function = Fun, arguments = Args}) ->
-    apply(Mod, Fun, Args);
-system_continue(Parent, Debug, {Fun, Args}) ->
-    %% Handle upgrade from old releases. Please, remove this clause in next release.
-    system_continue(Parent, Debug, #sys_misc{module = ?MODULE, function = Fun, arguments = Args}).
+    apply(Mod, Fun, Args).
 
 -spec system_terminate(_, _, _, #sys_misc{} | {_, _}) -> no_return().
 
 system_terminate(Reason, _Parent, _Debug, #sys_misc{}) ->
-    exit(Reason);
-system_terminate(Reason, Parent, Debug, {Fun, Args}) ->
-    %% Handle upgrade from old releases. Please, remove this clause in next release.
-    system_terminate(Reason, Parent, Debug, #sys_misc{module = ?MODULE, function = Fun, arguments = Args}).
+    exit(Reason).
 
-system_code_change({Fun, Args}, _Module, _OldVsn, _Extra) ->
-    {ok, {Fun, Args}}.
+system_code_change(Misc, _Module, _OldVsn, _Extra) ->
+    {ok, Misc}.

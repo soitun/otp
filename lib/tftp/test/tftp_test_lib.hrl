@@ -20,28 +20,35 @@
 %% %CopyrightEnd%
 %%
 
--record('REASON', {mod, line, desc}).
-
--define(LOG(Format, Args),
-	tftp_test_lib:log(Format, Args, ?MODULE, ?LINE)).
-
--define(ERROR(Reason),
-        erlang:error({?MODULE,?LINE,?FUNCTION_NAME,(Reason)})).
-	%% tftp_test_lib:error(Reason, ?MODULE, ?LINE)).
-
 -define(VERIFY(Expected, Expr),
-	fun() ->
-		AcTuAlReS = (catch (Expr)),
-		case AcTuAlReS of
-		    Expected -> ?LOG("Ok, ~p\n", [AcTuAlReS]);
-		    _        ->	?ERROR(AcTuAlReS)
-	       end,
-		AcTuAlReS
-	end()).
+        begin
+            tftp_test_lib:verify(
+              fun (_ExPr_ReSuLt) ->
+                      case _ExPr_ReSuLt of
+                          {Expected} -> true;
+                          _          -> false
+                      end
+              end,
+              fun () -> begin Expr end end,
+              ?MODULE, ?LINE)
+        end).
 
--define(IGNORE(Expr), 
-	fun() ->
-		AcTuAlReS = (catch (Expr)),
-		?LOG("Ok, ~p\n", [AcTuAlReS]),
-		AcTuAlReS
-	end()).
+-define(VERIFY(Class, Reason, Expr),
+        begin
+            tftp_test_lib:verify(
+              fun (_ExCePtIoN_TuPlE) ->
+                      case _ExCePtIoN_TuPlE of
+                          {(Class), (Reason)} -> true;
+                          _                   -> false
+                      end
+              end,
+              fun () -> begin Expr end end,
+              ?MODULE, ?LINE)
+        end).
+
+-define(IGNORE(Expr),
+        begin
+            tftp_test_lib:ignore(
+              fun () -> begin Expr end end,
+              ?MODULE, ?LINE)
+        end).

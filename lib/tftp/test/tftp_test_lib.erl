@@ -3,7 +3,7 @@
 %%
 %% SPDX-License-Identifier: Apache-2.0
 %%
-%% Copyright Ericsson AB 2007-2025. All Rights Reserved.
+%% Copyright Ericsson AB 2007-2026. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@
 
 -module(tftp_test_lib).
 
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 
 -include("tftp_test_lib.hrl").
 
@@ -42,11 +42,11 @@
 
 init_per_testcase(_Case, Config) when is_list(Config) ->
     io:format("\n ", []),
-    ?IGNORE(application:stop(tftp)),   
+    ?IGNORE(application:stop(tftp)),
     Config.
 
 end_per_testcase(_Case, Config) when is_list(Config) ->
-    ?IGNORE(application:stop(tftp)),   
+    ?IGNORE(application:stop(tftp)),
     Config.
 
 
@@ -54,30 +54,51 @@ end_per_testcase(_Case, Config) when is_list(Config) ->
 %% Infrastructure for test suite
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+verify(MatchFun, Fun, Mod, Line) ->
+    try Fun() of
+        Result ->
+            case MatchFun({Result}) of
+                true ->
+                    log("Ok, ~p~n", [Result], Mod, Line),
+                    {Result};
+                false ->
+                    log("<ERROR> Bad result: ~p\n", [Result], Mod, Line),
+                    erlang:error({Mod, Line, Result})
+            end
+    catch Class : Reason : Stacktrace ->
+            case MatchFun({Class, Reason}) of
+                true ->
+                    log("Expected exception, ~w : ~w : ~p~n",
+                        [Class, Reason, Stacktrace],
+                        Mod, Line),
+                    {Class, Reason, Stacktrace};
+                false ->
+                    log("Exception, ~w : ~w : ~p~n",
+                        [Class, Reason, Stacktrace],
+                        Mod, Line),
+                    erlang:error({Mod, Line, Class, Reason, Stacktrace})
+            end
+    end.
+
+ignore(Fun, Mod, Line) ->
+    try Fun() of
+        Result ->
+            log("Ok, ~p~n", [Result], Mod, Line),
+            {Result}
+    catch Class : Reason : Stacktrace ->
+            log("Ignored exception, ~w : ~w : ~p~n",
+                [Class, Reason, Stacktrace],
+                Mod, Line),
+            {Class, Reason, Stacktrace}
+    end.
+
 error(Actual, Mod, Line) ->
-    (catch global:send(tftp_global_logger, {failed, Mod, Line})),
     log("<ERROR> Bad result: ~p\n", [Actual], Mod, Line),
-    Label = lists:concat([Mod, "(", Line, ") unexpected result"]),
-    report_event(60, Mod, Mod, Label,
-                 [{line, Mod, Line}, {error, Actual}]),
-    case global:whereis_name(tftp_test_case_sup) of
-	undefined -> 
-	    ignore;
-	Pid -> 
-	    Fail = #'REASON'{mod = Mod, line = Line, desc = Actual},
-	    Pid ! {fail, self(), Fail}
-    end,
-    Actual.
+    erlang:error({Mod, Line, Actual}).
 
 log(Format, Args, Mod, Line) ->
-    case global:whereis_name(tftp_global_logger) of
-	undefined ->
-	    io:format(user, "~p(~p): " ++ Format, 
-		      [Mod, Line] ++ Args);
-	Pid ->
-	    io:format(Pid, "~p(~p): " ++ Format, 
-		      [Mod, Line] ++ Args)
-    end.
+    io:format(user, "~p(~p): " ++ Format, [Mod, Line] ++ Args).
+
 
 default_config() ->
     [].
@@ -96,7 +117,7 @@ t(Cases, Config) ->
     Res.
 
 do_test({Mod, Fun}, Config) when is_atom(Mod), is_atom(Fun) ->
-    case catch apply(Mod, Fun, [suite]) of
+    try apply(Mod, Fun, [suite]) of
 	[] ->
 	    io:format("Eval:   ~p:", [{Mod, Fun}]),
 	    Res = eval(Mod, Fun, Config),
@@ -112,32 +133,32 @@ do_test({Mod, Fun}, Config) when is_atom(Mod), is_atom(Fun) ->
 	    do_test(lists:map(Map, Cases), Config);
 
         {req, _, {conf, Init, Cases, Finish}} ->
-	    case (catch apply(Mod, Init, [Config])) of
+	    try apply(Mod, Init, [Config]) of
 		Conf when is_list(Conf) ->
 		    io:format("Expand: ~p ...\n", [{Mod, Fun}]),
 		    Map = fun(Case) when is_atom(Case)-> {Mod, Case};
 			     (Case) -> Case
 			  end,
 		    Res = do_test(lists:map(Map, Cases), Conf),
-		    (catch apply(Mod, Finish, [Conf])),
+		    try apply(Mod, Finish, [Conf]) catch _ : _ -> ok end,
 		    Res;
-		    
-		{'EXIT', {skipped, Reason}} ->
-		    io:format(" => skipping: ~p\n", [Reason]),
-		    [{skipped, {Mod, Fun}, Reason}];
-		    
+
 		Error ->
 		    io:format(" => failed: ~p\n", [Error]),
 		    [{failed, {Mod, Fun}, Error}]
-	    end;
-		    
-        {'EXIT', {undef, _}} ->
-	    io:format("Undefined:   ~p\n", [{Mod, Fun}]),
-	    [{nyi, {Mod, Fun}, ok}];
-		    
+
+            catch throw : {skipped, Reason} ->
+		    io:format(" => skipping: ~p\n", [Reason]),
+		    [{skipped, {Mod, Fun}, Reason}]
+            end;
+
         Error ->
 	    io:format("Ignoring:   ~p: ~p\n", [{Mod, Fun}, Error]),
 	    [{failed, {Mod, Fun}, Error}]
+
+    catch error : undef : Stacktrace ->
+	    io:format("Undefined:   ~p~n~p~n", [{Mod, Fun}, Stacktrace]),
+	    [{nyi, {Mod, Fun}, ok}]
     end;
 do_test(Mod, Config) when is_atom(Mod) ->
     Res = do_test({Mod, all}, Config),
@@ -191,11 +212,11 @@ wait_for_evaluator(Pid, Mod, Fun, Config, Errors) ->
     end.
 
 do_eval(ReplyTo, Mod, Fun, Config) ->
-    case (catch apply(Mod, Fun, [Config])) of
-	{'EXIT', {skipped, Reason}} ->
-	    ReplyTo ! {'EXIT', self(), {skipped, Reason}};
+    try apply(Mod, Fun, [Config]) of
 	Other ->
 	    ReplyTo ! {done, self(), Other}
+    catch throw : {skipped, Reason} ->
+	    ReplyTo ! {'EXIT', self(), {skipped, Reason}}
     end,
     unlink(ReplyTo),
     exit(shutdown).

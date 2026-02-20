@@ -33,8 +33,8 @@
 
 -define(START_DAEMON(Options),
         begin
-            {ok, Pid} = ?VERIFY({ok, _Pid}, tftp:start([{port, 0} | Options])),
-            {ok, ActualOptions} = ?IGNORE(tftp:info(Pid)),
+            {{ok, Pid}} = ?VERIFY({ok, _Pid}, tftp:start([{port, 0} | Options])),
+            {{ok, ActualOptions}} = ?IGNORE(tftp:info(Pid)),
             {value, {port, ActualPort}} =
                 lists:keysearch(port, 1, ActualOptions),
             {ActualPort, Pid}
@@ -124,7 +124,7 @@ simple(suite) ->
 simple(Config) when is_list(Config) ->
     ?VERIFY(ok, application:start(tftp)),
 
-    {Port, DaemonPid} = ?IGNORE(?START_DAEMON([{debug, brief}])),
+    {{Port, DaemonPid}} = ?IGNORE(?START_DAEMON([{debug, brief}])),
 
     %% Read fail
     RemoteFilename = "tftp_temporary_remote_test_file.txt",
@@ -174,7 +174,7 @@ root_dir(Config) when is_list(Config) ->
     Blob = binary:copy(<<$1>>, 2000),
     Size = byte_size(Blob),
     ok = file:write_file(fn_jn(SideDir,Remote), Blob),
-    {Port, DaemonPid} =
+    {{Port, DaemonPid}} =
         ?IGNORE(?START_DAEMON([{debug, brief},
                                {callback,
                                 {"", tftp_file, [{root_dir, RootDir}]}}])),
@@ -226,11 +226,11 @@ extra(doc) ->
 extra(suite) ->
     [];
 extra(Config) when is_list(Config) ->
-    ?VERIFY({'EXIT', {badarg,{fake_key, fake_flag}}},
+    ?VERIFY(exit, {badarg,{fake_key, fake_flag}},
             tftp:start([{port, 0}, {fake_key, fake_flag}])),
 
-    {Port, DaemonPid} = ?IGNORE(?START_DAEMON([{debug, brief}])),
-    
+    {{Port, DaemonPid}} = ?IGNORE(?START_DAEMON([{debug, brief}])),
+
     RemoteFilename = "tftp_extra_temporary_remote_test_file.txt",
     LocalFilename = "tftp_extra_temporary_local_test_file.txt",
     Blob = <<"Some file contents\n">>,
@@ -363,19 +363,23 @@ resend_client(suite) ->
     [];
 resend_client(Config) when is_list(Config) ->
     Host = {127, 0, 0, 1},
-    {Port, DaemonPid} = ?IGNORE(?START_DAEMON([{debug, all}])),
+    {{Port, DaemonPid}} = ?IGNORE(?START_DAEMON([{debug, all}])),
 
-    ?VERIFY(ok, resend_read_client(Host, Port, 10)),
-    ?VERIFY(ok, resend_read_client(Host, Port, 512)),
-    ?VERIFY(ok, resend_read_client(Host, Port, 1025)),
+    try
 
-    ?VERIFY(ok, resend_write_client(Host, Port, 10)),
-    ?VERIFY(ok, resend_write_client(Host, Port, 512)),
-    ?VERIFY(ok, resend_write_client(Host, Port, 1025)),
-    
-    %% Cleanup
-    unlink(DaemonPid),
-    exit(DaemonPid, kill),
+    ok = resend_read_client(Host, Port, 10),
+    ok = resend_read_client(Host, Port, 512),
+    ok = resend_read_client(Host, Port, 1025),
+
+    ok = resend_write_client(Host, Port, 10),
+    ok = resend_write_client(Host, Port, 512),
+    ok = resend_write_client(Host, Port, 1025)
+
+    after
+        %% Cleanup
+        unlink(DaemonPid),
+        exit(DaemonPid, kill)
+    end,
     ok.
 
 resend_read_client(Host, Port, BlkSize) ->
@@ -393,7 +397,7 @@ resend_read_client(Host, Port, BlkSize) ->
     ?VERIFY(timeout, recv(0)),
 
     %% Open socket
-    {ok, Socket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, Socket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
 
     ReadList = [0, 1, RemoteFilename, 0, "octet", 0],
     Data1Bin = list_to_binary([0, 3, 0, 1 | Block1]),
@@ -408,7 +412,7 @@ resend_read_client(Host, Port, BlkSize) ->
                 timer:sleep(Timeout + timer:seconds(1)),
 
                 %% Recv DATA #1 (the packet that the server think that we have lost)
-                {udp, _, _, NewPort0, _} = ?VERIFY({udp, Socket, Host, _, Data1Bin}, recv(Timeout)),
+                {{udp, _, _, NewPort0, _}} = ?VERIFY({udp, Socket, Host, _, Data1Bin}, recv(Timeout)),
                 NewPort0;
             true ->
                 %% Send READ
@@ -419,7 +423,7 @@ resend_read_client(Host, Port, BlkSize) ->
 
                 %% Recv OACK
                 OptionAckBin = list_to_binary([0, 6 | Options]),
-                {udp, _, _, NewPort0, _} = ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
+                {{udp, _, _, NewPort0, _}} = ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
 
                 %% Send ACK #0
                 Ack0Bin = <<0, 4, 0, 0>>,
@@ -509,7 +513,7 @@ resend_write_client(Host, Port, BlkSize) ->
     ?VERIFY(timeout, recv(0)),
 
     %% Open socket
-    {ok, Socket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, Socket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
 
     WriteList = [0, 2, RemoteFilename, 0, "octet", 0],
     NewPort =
@@ -527,7 +531,7 @@ resend_write_client(Host, Port, BlkSize) ->
                 ?VERIFY({udp, Socket, Host, _, Ack0Bin}, recv(Timeout)),
 
                 %% Recv ACK #0  AGAIN (the re-sent package)
-                {udp, _, _, NewPort0, _} = ?VERIFY({udp, Socket, Host, _, Ack0Bin}, recv(Timeout)),
+                {{udp, _, _, NewPort0, _}} = ?VERIFY({udp, Socket, Host, _, Ack0Bin}, recv(Timeout)),
                 NewPort0;
             true ->
                 %% Send WRITE
@@ -543,7 +547,7 @@ resend_write_client(Host, Port, BlkSize) ->
                 ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
                 
                 %% Recv OACK AGAIN (the re-sent package)
-                {udp, _, _, NewPort0, _} = ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
+                {{udp, _, _, NewPort0, _}} = ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
                 NewPort0
         end,
 
@@ -616,14 +620,13 @@ resend_server(suite) ->
 resend_server(Config) when is_list(Config) ->
     Host = {127, 0, 0, 1},
 
-    ?VERIFY(ok, resend_read_server(Host, 10)),
-    ?VERIFY(ok, resend_read_server(Host, 512)),
-    ?VERIFY(ok, resend_read_server(Host, 1025)),
-    
-    ?VERIFY(ok, resend_write_server(Host, 10)),
-    ?VERIFY(ok, resend_write_server(Host, 512)),
-    ?VERIFY(ok, resend_write_server(Host, 1025)),
-    ok.
+    ok = resend_read_server(Host, 10),
+    ok = resend_read_server(Host, 512),
+    ok = resend_read_server(Host, 1025),
+
+    ok = resend_write_server(Host, 10),
+    ok = resend_write_server(Host, 512),
+    ok = resend_write_server(Host, 1025).
 
 resend_read_server(Host, BlkSize) ->
     RemoteFilename = "tftp_resend_read_server.tmp",
@@ -640,11 +643,11 @@ resend_read_server(Host, BlkSize) ->
     ?VERIFY(timeout, recv(0)),
 
     %% Open daemon socket
-    {ok, DaemonSocket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
-    {ok, DaemonPort} = ?IGNORE(inet:port(DaemonSocket)),
+    {{ok, DaemonSocket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, DaemonPort}} = ?IGNORE(inet:port(DaemonSocket)),
 
     %% Open server socket
-    {ok, ServerSocket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, ServerSocket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
     ?IGNORE(inet:port(ServerSocket)),
 
     %% Prepare client process
@@ -652,7 +655,7 @@ resend_read_server(Host, BlkSize) ->
     ClientFun =
         fun(Extra) ->
                 Options = [{port, DaemonPort}, {debug, brief}] ++ Extra,
-                Res = ?VERIFY({ok, Blob}, tftp:read_file(RemoteFilename, binary, Options)),
+                {Res} = ?VERIFY({ok, Blob}, tftp:read_file(RemoteFilename, binary, Options)),
                 ReplyTo ! {self(), {tftp_client_reply, Res}},
                 exit(normal)
         end,
@@ -668,7 +671,7 @@ resend_read_server(Host, BlkSize) ->
 
                 %% Recv READ
                 ReadBin = list_to_binary(ReadList),
-                {udp, _, _, ClientPort0, _} = ?VERIFY({udp, DaemonSocket, Host, _, ReadBin}, recv(Timeout)),
+                {{udp, _, _, ClientPort0, _}} = ?VERIFY({udp, DaemonSocket, Host, _, ReadBin}, recv(Timeout)),
 
                 %% Send DATA #1
                 ?VERIFY(ok,  gen_udp:send(ServerSocket, Host, ClientPort0, Data1Bin)),
@@ -690,7 +693,7 @@ resend_read_server(Host, BlkSize) ->
                 %% Recv READ
                 Options = ["blksize", 0, BlkSizeList, 0],
                 ReadBin = list_to_binary([ReadList | Options]),
-                {udp, _, _, ClientPort0, _} = ?VERIFY({udp, DaemonSocket, Host, _, ReadBin}, recv(Timeout)),
+                {{udp, _, _, ClientPort0, _}} = ?VERIFY({udp, DaemonSocket, Host, _, ReadBin}, recv(Timeout)),
 
                 %% Send OACK
                 BlkSizeList = integer_to_list(BlkSize),
@@ -791,11 +794,11 @@ resend_write_server(Host, BlkSize) ->
     ?VERIFY(timeout, recv(0)),
 
     %% Open daemon socket
-    {ok, DaemonSocket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
-    {ok, DaemonPort} = ?IGNORE(inet:port(DaemonSocket)),
+    {{ok, DaemonSocket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, DaemonPort}} = ?IGNORE(inet:port(DaemonSocket)),
 
     %% Open server socket
-    {ok, ServerSocket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, ServerSocket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
     ?IGNORE(inet:port(ServerSocket)),
 
     %% Prepare client process
@@ -803,7 +806,7 @@ resend_write_server(Host, BlkSize) ->
     ClientFun =
         fun(Extra) ->
                 Options = [{port, DaemonPort}, {debug, brief}] ++ Extra,
-                Res = ?VERIFY({ok, Size}, tftp:write_file(RemoteFilename, Blob, Options)),
+                {Res} = ?VERIFY({ok, Size}, tftp:write_file(RemoteFilename, Blob, Options)),
                 ReplyTo ! {self(), {tftp_client_reply, Res}},
                 exit(normal)
         end,
@@ -819,7 +822,7 @@ resend_write_server(Host, BlkSize) ->
                 %% Recv WRITE
                 WriteBin = list_to_binary(WriteList),
                 io:format("WriteBin ~p\n", [WriteBin]),
-                {udp, _, _, ClientPort0, _} = ?VERIFY({udp, DaemonSocket, Host, _, WriteBin}, recv(Timeout)),
+                {{udp, _, _, ClientPort0, _}} = ?VERIFY({udp, DaemonSocket, Host, _, WriteBin}, recv(Timeout)),
 
                 %% Send ACK #1
                 Ack0Bin = <<0, 4, 0, 0>>,
@@ -842,7 +845,7 @@ resend_write_server(Host, BlkSize) ->
                 %% Recv WRITE
                 Options = ["blksize", 0, BlkSizeList, 0],
                 WriteBin = list_to_binary([WriteList | Options]),
-                {udp, _, _, ClientPort0, _} = ?VERIFY({udp, DaemonSocket, Host, _, WriteBin}, recv(Timeout)),
+                {{udp, _, _, ClientPort0, _}} = ?VERIFY({udp, DaemonSocket, Host, _, WriteBin}, recv(Timeout)),
 
                 %% Send OACK
                 BlkSizeList = integer_to_list(BlkSize),
@@ -932,7 +935,7 @@ reuse_connection(suite) ->
     [];
 reuse_connection(Config) when is_list(Config) ->
     Host = {127, 0, 0, 1},
-    {Port, DaemonPid} = ?IGNORE(?START_DAEMON([{debug, all}])),
+    {{Port, DaemonPid}} = ?IGNORE(?START_DAEMON([{debug, all}])),
 
     RemoteFilename = "reuse_connection.tmp",
     BlkSize = 512,
@@ -947,7 +950,7 @@ reuse_connection(Config) when is_list(Config) ->
     ?VERIFY(timeout, recv(0)),
     
     %% Open socket
-    {ok, Socket} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
+    {{ok, Socket}} = ?VERIFY({ok, _}, gen_udp:open(0, [binary, {reuseaddr, true}, {active, true}])),
     
     ReadList = [0, 1, RemoteFilename, 0, "octet", 0],
     Data1Bin = list_to_binary([0, 3, 0, 1 | Block1]),
@@ -963,7 +966,7 @@ reuse_connection(Config) when is_list(Config) ->
 
     %% Recv OACK
     OptionAckBin = list_to_binary([0, 6 | Options]),
-    {udp, _, _, NewPort, _} = ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
+    {{udp, _, _, NewPort, _}} = ?VERIFY({udp, Socket, Host, _, OptionAckBin}, recv(Timeout)),
 
     %% Send ACK #0
     Ack0Bin = <<0, 4, 0, 0>>,
@@ -1006,7 +1009,7 @@ large_file(suite) ->
 large_file(Config) when is_list(Config) ->
     ?VERIFY(ok, application:start(tftp)),
 
-    {Port, DaemonPid} = ?IGNORE(?START_DAEMON([{debug, brief}])),
+    {{Port, DaemonPid}} = ?IGNORE(?START_DAEMON([{debug, brief}])),
 
     %% Read fail
     RemoteFilename = "tftp_temporary_large_file_remote_test_file.txt",

@@ -387,8 +387,9 @@ tls13_legacy_cert_sign(Config) when is_list(Config) ->
     test_rsa_pcks1_cert(sha512, ClientOpts, ServerOpts, Config),
     test_rsa_pcks1_cert(sha384, ClientOpts, ServerOpts, Config).
 
-tls13_legacy_cert_sign_with_pss_rsae() ->
-    [{doc,"Test that a TLS 1.3 enabled client can connect to legacy TLS-1.2 server with legacy pkcs1_SHA2 cert"}].
+tls13_legacy_cert_sign_with_pss_rsae() -> [{doc,"Test that a TLS 1.3
+    enabled client can connect to legacy TLS-1.2 server with legacy
+    pkcs1_SHA2 cert"}].
 
 tls13_legacy_cert_sign_with_pss_rsae(Config) when is_list(Config) ->
     ClientOpts =  [{versions, ['tlsv1.3', 'tlsv1.2']},
@@ -404,8 +405,9 @@ tls13_legacy_cert_sign_with_pss_rsae(Config) when is_list(Config) ->
     test_rsa_pcks1_cert(sha512, ClientOpts, ServerOpts, Config),
     test_rsa_pcks1_cert(sha384, ClientOpts, ServerOpts, Config).
 
-tls12_legacy_cert_sign() ->
-    [{doc,"Test that a TLS 1.2 client (with old configuration) can connect to  TLS-1.2 server with pkcs1_SHA2 cert"}].
+tls12_legacy_cert_sign() -> [{doc,"Test that a TLS 1.2 client (with
+    old configuration) can connect to TLS-1.2 server with pkcs1_SHA2
+    cert"}].
 
 tls12_legacy_cert_sign(Config) when is_list(Config) ->
     ClientOpts = [{versions, ['tlsv1.2']},
@@ -417,8 +419,9 @@ tls12_legacy_cert_sign(Config) when is_list(Config) ->
     test_rsa_pcks1_cert(sha512, ClientOpts, ServerOpts, Config),
     test_rsa_pcks1_cert(sha384, ClientOpts, ServerOpts, Config).
 
-tls12_legacy_cert_sign_with_pss_rsae() ->
-    [{doc,"Test that a modern TLS 1.2 client can connect to TLS-1.2 server with legacy pkcs1_SHA2 cert"}].
+tls12_legacy_cert_sign_with_pss_rsae() -> [{doc,"Test that a modern
+    TLS 1.2 client can connect to TLS-1.2 server with legacy
+    pkcs1_SHA2 cert"}].
 
 tls12_legacy_cert_sign_with_pss_rsae(Config) when is_list(Config) ->
     ClientOpts =  [{versions, ['tlsv1.2']},
@@ -433,9 +436,10 @@ tls12_legacy_cert_sign_with_pss_rsae(Config) when is_list(Config) ->
     test_rsa_pcks1_cert(sha512, ClientOpts, ServerOpts, Config),
     test_rsa_pcks1_cert(sha384, ClientOpts, ServerOpts, Config).
 
-reject_legacy_cert() ->
-    [{doc,"Test that client sends empty cert if does only have legacy pkcs1_SHA2 cert that is not supported by the server"
-      "and do not make connection with client that requires better cert and only option is legacy pkcs1_SHA2 cert"}].
+reject_legacy_cert() -> [{doc,"Test that client sends empty cert if
+    does only have legacy pkcs1_SHA2 cert that is not supported by the
+    server" "and do not make connection with client that requires
+    better cert and only option is legacy pkcs1_SHA2 cert"}].
 
 reject_legacy_cert(Config) when is_list(Config) ->
     reject_legacy_cert('tlsv1.3', certificate_required, Config),
@@ -454,15 +458,11 @@ reject_legacy_cert(Version, Alert, Config) ->
       server_config := ServerOpts0} =
         public_key:pkix_test_data(#{client_chain =>
                                         #{root => root_key(sha256),
-                                          intermediates => intermediates(sha256, 1),
-                                          peer => peer_key(sha256)}, 
-                                    server_chain => 
+                                          peer => peer_key(sha256)},
+                                    server_chain =>
                                         #{root => root_key(sha256, ssl_test_lib:pss_params(sha256)),
-                                          intermediates => intermediates(sha256, 
-                                                                        ssl_test_lib:pss_params(sha256), 
-                                                                        1),
                                           peer => peer_key(sha256, ssl_test_lib:pss_params(sha256))
-                                         }}),   
+                                         }}),
     ClientOpts = ClientOpts0 ++ COpts,
     ServerOpts = ServerOpts0 ++ SOpts,
     ssl_test_lib:basic_alert(ClientOpts, ServerOpts, Config, Alert),
@@ -470,31 +470,35 @@ reject_legacy_cert(Version, Alert, Config) ->
     RevServerOtps = ClientOpts0 ++ [{signature_algs, rsa_pss_pss_algs() ++ rsa_pss_rsae_algs()}],
     ssl_test_lib:basic_alert(RevClientOpts,  RevServerOtps, Config, insufficient_security).
 
-middle_box_tls13_client() ->
-    [{doc,"Test that a TLS 1.3 client can connect to a 1.3 server with and without middle box compatible mode."}].
-middle_box_tls13_client(Config) when is_list(Config) ->
-    ClientOpts = [{versions,
-                   ['tlsv1.3']} | ssl_test_lib:ssl_options(client_cert_opts, Config)],
-    ServerOpts =  [{versions, ['tlsv1.3']} |
-                   ssl_test_lib:ssl_options(server_cert_opts, Config)],
+middle_box_tls13_client() -> [{doc,"Test that a TLS 1.3 client can
+    connect to a 1.3 server with and without middle box compatible
+    mode."}].  middle_box_tls13_client(Config) when is_list(Config) ->
+    ClientOpts = [{versions, ['tlsv1.3']} |
+    ssl_test_lib:ssl_options(client_cert_opts, Config)], ServerOpts =
+    [{versions, ['tlsv1.3']} |
+    ssl_test_lib:ssl_options(server_cert_opts, Config)],
     middlebox_test(true, not_empty, ClientOpts, ServerOpts, Config),
     middlebox_test(false, empty, ClientOpts, ServerOpts, Config).
 
-middle_box_tls12_enabled_client() ->
-    [{doc,"Test that a TLS 1.2 enabled client can connect to a TLS 1.3 server with and without middle box compatible mode."}].
-middle_box_tls12_enabled_client(Config) when is_list(Config) ->
-    ClientOpts = [{versions, ['tlsv1.2', 'tlsv1.3']} | ssl_test_lib:ssl_options(client_cert_opts, Config)],
-    ServerOpts =  [{versions, ['tlsv1.3']} |
-                   ssl_test_lib:ssl_options(server_cert_opts, Config)],
+middle_box_tls12_enabled_client() -> [{doc,"Test that a TLS 1.2
+    enabled client can connect to a TLS 1.3 server with and without
+    middle box compatible mode."}].
+    middle_box_tls12_enabled_client(Config) when is_list(Config) ->
+    ClientOpts = [{versions, ['tlsv1.2', 'tlsv1.3']} |
+    ssl_test_lib:ssl_options(client_cert_opts, Config)], ServerOpts =
+    [{versions, ['tlsv1.3']} |
+    ssl_test_lib:ssl_options(server_cert_opts, Config)],
     middlebox_test(true, not_empty, ClientOpts, ServerOpts, Config),
     middlebox_test(false, empty, ClientOpts, ServerOpts, Config).
 
-middle_box_client_tls_v2_session_reused() ->
-    [{doc, "Test that TLS-1.3 middlebox enabled client can reuse TLS-1.2 session when talking to TLS-1.2 server"}].
-middle_box_client_tls_v2_session_reused(Config) when is_list(Config) ->
-    {ClientNode, ServerNode, Hostname} = ssl_test_lib:run_where(Config),
-    ClientOpts = ssl_test_lib:ssl_options(client_cert_opts, Config),
-    ServerOpts = ssl_test_lib:ssl_options(server_cert_opts, Config),
+middle_box_client_tls_v2_session_reused() -> [{doc, "Test that TLS-1.3
+    middlebox enabled client can reuse TLS-1.2 session when talking to
+    TLS-1.2 server"}].
+    middle_box_client_tls_v2_session_reused(Config) when
+    is_list(Config) -> {ClientNode, ServerNode, Hostname} =
+    ssl_test_lib:run_where(Config), ClientOpts =
+    ssl_test_lib:ssl_options(client_cert_opts, Config), ServerOpts =
+    ssl_test_lib:ssl_options(server_cert_opts, Config),
 
     Server = ssl_test_lib:start_server([{node, ServerNode}, {port, 0},
 					{from, self()},

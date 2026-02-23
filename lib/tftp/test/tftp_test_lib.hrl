@@ -20,35 +20,8 @@
 %% %CopyrightEnd%
 %%
 
--define(VERIFY(Expected, Expr),
+-define(TRY(Expr),
         begin
-            tftp_test_lib:verify(
-              fun (_ExPr_ReSuLt) ->
-                      case _ExPr_ReSuLt of
-                          {Expected} -> true;
-                          _          -> false
-                      end
-              end,
-              fun () -> begin Expr end end,
-              ?MODULE, ?LINE)
-        end).
-
--define(VERIFY(Class, Reason, Expr),
-        begin
-            tftp_test_lib:verify(
-              fun (_ExCePtIoN_TuPlE) ->
-                      case _ExCePtIoN_TuPlE of
-                          {(Class), (Reason)} -> true;
-                          _                   -> false
-                      end
-              end,
-              fun () -> begin Expr end end,
-              ?MODULE, ?LINE)
-        end).
-
--define(IGNORE(Expr),
-        begin
-            tftp_test_lib:ignore(
-              fun () -> begin Expr end end,
-              ?MODULE, ?LINE)
+            tftp_test_lib:try_catch(fun () -> begin Expr end end,
+                                    ?MODULE, ?LINE, ?FUNCTION_NAME)
         end).

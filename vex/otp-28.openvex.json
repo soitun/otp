@@ -3,8 +3,8 @@
   "@id": "https://erlang.org/download/vex/otp-28.openvex.json",
   "author": "vexctl",
   "timestamp": "2025-11-28T16:37:17.252127+01:00",
-  "last_updated": "2026-02-02T08:56:25.621451816+01:00",
-  "version": 54,
+  "last_updated": "2026-02-21T01:36:57.71569727Z",
+  "version": 56,
   "statements": [
     {
       "vulnerability": {
@@ -1782,6 +1782,65 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_present"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-21620"
+      },
+      "timestamp": "2026-02-21T01:36:57.6971207Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.2"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.3"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.4"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.1.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.2"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.3"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.3.1"
+        },
+        {
+          "@id": "pkg:otp/tftp@1.2.3"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/tftp@1.2.4",
+      "action_statement_timestamp": "2026-02-21T01:36:57.6971207Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-21620"
+      },
+      "timestamp": "2026-02-21T01:36:57.715698031Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.3.2"
+        },
+        {
+          "@id": "pkg:otp/tftp@1.2.4"
+        }
+      ],
+      "status": "fixed"
     }
   ]
 }

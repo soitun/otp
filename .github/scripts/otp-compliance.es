@@ -3294,6 +3294,9 @@ format_vexctl(_VexPath, <<>>, _CVE, _) ->
 format_vexctl(VexPath, Versions, CVE, #{~"not_affected" := ~"vulnerable_code_not_present"}) ->
     io_lib:format("vexctl add --in-place ~ts --product='~ts' --vuln='~ts' --status='~ts' --justification='~ts'~n",
               [VexPath, Versions, CVE, ~"not_affected", ~"vulnerable_code_not_present"]);
+format_vexctl(VexPath, Versions, CVE, #{~"not_affected" := ~"vulnerable_code_not_in_execute_path"}) ->
+    io_lib:format("vexctl add --in-place ~ts --product='~ts' --vuln='~ts' --status='~ts' --justification='~ts'~n",
+              [VexPath, Versions, CVE, ~"not_affected", ~"vulnerable_code_not_in_execute_path"]);
 format_vexctl(VexPath, Versions, CVE, #{~"affected" := Mitigation}) ->
     io_lib:format("vexctl add --in-place ~ts --product='~ts' --vuln='~ts' --status='~ts' --action-statement='~ts'~n",
           [VexPath, Versions, CVE, ~"affected", Mitigation]);

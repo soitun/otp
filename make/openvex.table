@@ -1,6 +1,15 @@
 {
   "otp-26": [
     {
+      "pkg:github/madler/zlib@04f42ceca40f73e2978b50e93806c2a18c1281fc": "CVE-2026-27171",
+      "status": {
+        "apps": [
+          "pkg:otp/erts@14.0"
+        ],
+        "not_affected": "vulnerable_code_not_in_execute_path"
+      }
+    },
+    {
       "pkg:otp/tftp@1.1": "CVE-2026-21620",
       "status": {
         "affected": "Update to any of the following versions: pkg:otp/tftp@1.1.1.1",
@@ -258,6 +267,15 @@
   ],
   "otp-27": [
     {
+      "pkg:github/madler/zlib@04f42ceca40f73e2978b50e93806c2a18c1281fc": "CVE-2026-27171",
+      "status": {
+        "apps": [
+          "pkg:otp/erts@15.0"
+        ],
+        "not_affected": "vulnerable_code_not_in_execute_path"
+      }
+    },
+    {
       "pkg:otp/tftp@1.2": "CVE-2026-21620",
       "status": {
         "affected": "Update to any of the following versions: pkg:otp/tftp@1.2.2.1",
@@ -505,6 +523,15 @@
     }
   ],
   "otp-28": [
+    {
+      "pkg:github/madler/zlib@1a8db63788c34a50e39e273d39b7e1033208aea2": "CVE-2026-27171",
+      "status": {
+        "apps": [
+          "pkg:otp/erts@16.0"
+        ],
+        "not_affected": "vulnerable_code_not_in_execute_path"
+      }
+    },
     {
       "pkg:otp/tftp@1.2.3": "CVE-2026-21620",
       "status": {
@@ -766,6 +793,10 @@
     }
   ],
   "otp-29": [
+    {
+      "pkg:github/madler/zlib@1a8db63788c34a50e39e273d39b7e1033208aea2": "CVE-2026-27171",
+      "status": { "not_affected": "vulnerable_code_not_in_execute_path" }
+    },
     {
       "pkg:github/madler/zlib@1a8db63788c34a50e39e273d39b7e1033208aea2": "CVE-2023-45853",
       "status": { "not_affected": "vulnerable_code_not_present" }

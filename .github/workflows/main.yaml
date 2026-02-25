@@ -56,6 +56,7 @@ env:
 permissions:
   contents: read
   pull-requests: read
+  security-events: read
 
 jobs:
 
@@ -646,7 +647,7 @@ jobs:
       - name: Check OSSF compiler flags
         uses: ./.github/actions/ossf-compiler-flags-scanner
         with:
-          upload: true
+          upload: ${{ github.repository == 'erlang/otp' || github.event_name != 'push' }}
 
   test:
     name: Test Erlang/OTP

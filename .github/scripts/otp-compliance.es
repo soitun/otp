@@ -1815,7 +1815,7 @@ vendor_by_version(_) ->
 %% any vulnerability. The user should still look into possible
 %% issues with wx if they link to it.
 non_vulnerable_vendor_packages() ->
-    [~"wx-wxwidgets"].
+    [~"wx-wxwidgets", ~"wx-opengl"].
 
 ignore_non_vulnerable_vendors(Packages) ->
     lists:filter(fun (#{~"ID" := Id}) -> not lists:member(Id, non_vulnerable_vendor_packages())
